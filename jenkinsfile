@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    environment {
+        MAVEN_HOME = '/usr/share/maven'  // optional if Maven is pre-configured
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                echo "Checking out source code..."
+                git 'https://github.com/your-username/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Running Maven Build..."
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Running Unit Tests..."
+                sh 'mvn test'
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                echo "Archiving build artifacts..."
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Send Notification') {
+            steps {
+                echo "Build completed!"
+                // You can integrate email or Slack notifications here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '🎉 Build and test completed successfully!'
+        }
+        failure {
+            echo '❌ Build failed. Check logs for details.'
+        }
+    }
+}
