@@ -1,30 +1,55 @@
-node(){
+pipeline {
+    agent any
 
-	def sonarHome = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-	
-	stage('Code Checkout'){
-		checkout changelog: false, poll: false, scm: scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'GitHubCreds', url: 'https://github.com/anujdevopslearn/MavenBuild']])
-	}
-	stage('Build Automation'){
-		sh """
-			ls -lart
-			mvn clean install
-			ls -lart target
+    environment {
+        MAVEN_HOME = '/usr/share/maven'  // optional if Maven is pre-configured
+    }
 
-		"""
-	}
-	
-	stage('Code Scan'){
-		withSonarQubeEnv(credentialsId: 'SonarQubeCreds') {
-			sh "${sonarHome}/bin/sonar-scanner"
-		}
-		
-	}
-	stage('Code Coverage ') {
-	    //sh "curl -o coverage.json 'http://35.154.151.174:9000/sonar/api/measures/component?componentKey=com.java.example:java-example&metricKeys=coverage';sonarCoverage=`jq '.component.measures[].value' coverage.json`;if [ 1 -eq '\$(echo '\${sonarCoverage} >= 50'| bc)' ]; then echo 'Failed' ;exit 1;else echo 'Passed'; fi"
-	}
-	
-	stage('Code Deployment'){
-		deploy adapters: [tomcat9(credentialsId: 'TomcatCreds', path: '', url: 'http://54.197.62.94:8080/')], contextPath: 'Planview', onFailure: false, war: 'target/*.war'
-	}
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                echo "Checking out source code..."
+                git 'https://github.com/your-username/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Running Maven Build..."
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Running Unit Tests..."
+                sh 'mvn test'
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                echo "Archiving build artifacts..."
+                archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Send Notification') {
+            steps {
+                echo "Build completed!"
+                // You can integrate email or Slack notifications here
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '🎉 Build and test completed successfully!'
+        }
+        failure {
+            echo '❌ Build failed. Check logs for details.'
+        }
+    }
 }
+
